@@ -5,8 +5,10 @@ import org.apache.spark.api.java.JavaSparkContext;
 import scala.Tuple2;
 
 import java.io.IOException;
-import java.util.*;
-import java.util.function.Function;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class G47HW1 {
 
@@ -38,7 +40,7 @@ public class G47HW1 {
         int K = Integer.parseInt(args[0]);
 
         // Read input file and subdivide it into K random partitions
-        JavaRDD<String> docs = sc.textFile(args[1]).repartition(K);
+        JavaRDD<String> dataset = sc.textFile(args[1]).repartition(K);
 
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         // SETTING GLOBAL VARIABLES
@@ -50,20 +52,15 @@ public class G47HW1 {
         // VERSION WITH DETERMINISTIC PARTITIONS
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        count = docs
-                .flatMapToPair((document) -> {    // <-- MAP PHASE (R1)
-                    String[] tokens = document.split("\n");
-                    ArrayList<Tuple2<Long, String>> pairs = new ArrayList<>(tokens.length);
-                    for (String token : tokens) {
-                        String[] parts = token.split(" ");
-                        pairs.add(new Tuple2<>(Long.parseLong(parts[0]) % K, parts[1]));
-                    }
-                    return pairs.iterator();
+        count = dataset
+                .mapToPair((row) -> {    // <-- MAP PHASE (R1)
+                    String[] parts = row.split(" ");
+                    return new Tuple2<>(Long.parseLong(parts[0]) % K, parts[1]);
                 })
-                .groupByKey()    // <-- REDUCE PHASE (R2)
+                .groupByKey()    // <-- REDUCE PHASE (R1)
                 .flatMapToPair((tuple) -> {
                     HashMap<String, Long> counts = new HashMap<>();
-                    for (String c: tuple._2()) {
+                    for (String c : tuple._2()) {
                         counts.put(c, 1 + counts.getOrDefault(c, 0L));
                     }
                     ArrayList<Tuple2<String, Long>> pairs = new ArrayList<>();
@@ -81,19 +78,19 @@ public class G47HW1 {
                     return sum;
                 }).sortByKey();
         List<Tuple2<String, Long>> result = count.collect();
-//        result.sort(Comparator.comparing(t -> t._1()));
-       System.out.print("VERSION WITH DETERMINISTIC PARTITIONS\nOutput pairs = ");
-       result.forEach(el -> System.out.print(el+" "));
+        System.out.print("VERSION WITH DETERMINISTIC PARTITIONS\nOutput pairs = ");
+        result.forEach(el -> System.out.print(el + " "));
+
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-        // IMPROVED WORD COUNT with mapPartitions
+        // VERSION WITH SPARK PARTITIONS
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        List<Tuple2<String, Long>> result2 = docs
+        List<Tuple2<String, Long>> result2 = dataset
                 .mapPartitionsToPair((row) -> {    // <-- MAP PHASE (R1)
 
                     HashMap<String, Long> counts = new HashMap<>();
                     long length = 0;
-                    while (row.hasNext()){
+                    while (row.hasNext()) {
                         String key = row.next().split(" ")[1];
                         counts.put(key, 1 + counts.getOrDefault(key, 0L));
                         length += 1;
@@ -107,11 +104,11 @@ public class G47HW1 {
                     return pairs.iterator();
                 })
                 .groupByKey()     // <-- REDUCE PHASE (R2)
-                .mapToPair((it) -> {
-                    if(it._1().equals("maxPartitionSize")) {
+                .map((it) -> {
+                    if (it._1().equals("maxPartitionSize")) {
                         long max = 0;
                         for (long c : it._2()) {
-                            if (c>max) {
+                            if (c > max) {
                                 max = c;
                             }
                         }
@@ -124,13 +121,11 @@ public class G47HW1 {
                         return new Tuple2<>(it._1(), sum);
                     }
                 })
-                .sortByKey()
-                .map((it) -> it)
-                .sortBy((pair) -> pair._2(), false, K)
+                .sortBy((pair) -> pair._1(), true, K) // sorted ascending by class name
+                .sortBy((pair) -> pair._2(), false, K) // sorted descending by occurrences
                 .collect();
 
-
-        Long N_max = result2.stream().filter((el) -> el._1().equals("maxPartitionSize")).findAny().get()._2;
+        Long N_max = result2.stream().filter((el) -> el._1().equals("maxPartitionSize")).findAny().get()._2();
         System.out.println("\n\nVERSION WITH SPARK PARTITIONS\n" +
                 "Most frequent class =  " + result2.get(0) +
                 "\nMax partition size =  " + N_max
