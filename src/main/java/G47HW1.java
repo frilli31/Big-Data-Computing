@@ -127,7 +127,7 @@ public class G47HW1 {
 
         Long N_max = result2.stream().filter((el) -> el._1().equals("maxPartitionSize")).findAny().get()._2();
         System.out.println("\n\nVERSION WITH SPARK PARTITIONS\n" +
-                "Most frequent class =  " + result2.get(0) +
+                "Most frequent class =  " + result2.stream().filter((el) -> !el._1().equals("maxPartitionSize")).findFirst().get() +
                 "\nMax partition size =  " + N_max
         );
     }
