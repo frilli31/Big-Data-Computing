@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class G47HW1 {
+public class G46HW1 {
 
     public static void main(String[] args) throws IOException {
 
@@ -55,28 +55,33 @@ public class G47HW1 {
         count = dataset
                 .mapToPair((row) -> {    // <-- MAP PHASE (R1)
                     String[] parts = row.split(" ");
+                    // map the pair into the the bucket "i mod K"
                     return new Tuple2<>(Long.parseLong(parts[0]) % K, parts[1]);
                 })
                 .groupByKey()    // <-- REDUCE PHASE (R1)
                 .flatMapToPair((tuple) -> {
                     HashMap<String, Long> counts = new HashMap<>();
+                    // count the repetition of each word
                     for (String c : tuple._2()) {
                         counts.put(c, 1 + counts.getOrDefault(c, 0L));
                     }
+                    // convert the dictionary into an ArrayList
                     ArrayList<Tuple2<String, Long>> pairs = new ArrayList<>();
                     for (Map.Entry<String, Long> e : counts.entrySet()) {
                         pairs.add(new Tuple2<>(e.getKey(), e.getValue()));
                     }
                     return pairs.iterator();
                 })
-                .groupByKey()    // <-- REDUCE PHASE (R2)
+                // group by word
+                .groupByKey()    // <-- REDUCE PHASE (R2):
                 .mapValues((it) -> {
+                    // for each word sum all the counts computed by in different buckets
                     long sum = 0;
                     for (long c : it) {
                         sum += c;
                     }
                     return sum;
-                }).sortByKey();
+                }).sortByKey(); // sort ky word, so in alphabetical order
         List<Tuple2<String, Long>> result = count.collect();
         System.out.print("VERSION WITH DETERMINISTIC PARTITIONS\nOutput pairs = ");
         result.forEach(el -> System.out.print(el + " "));
@@ -86,16 +91,21 @@ public class G47HW1 {
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
         List<Tuple2<String, Long>> result2 = dataset
+                // consider each partition
                 .mapPartitionsToPair((row) -> {    // <-- MAP PHASE (R1)
 
                     HashMap<String, Long> counts = new HashMap<>();
-                    long length = 0;
+                    long size = 0;
+                    // foreach entry in the partition update the dictionary that contains
+                    // the count of each word and increase by 1 the variable size that
+                    // contains the size of the partition
                     while (row.hasNext()) {
                         String key = row.next().split(" ")[1];
                         counts.put(key, 1 + counts.getOrDefault(key, 0L));
-                        length += 1;
+                        size += 1;
                     }
-                    counts.put("maxPartitionSize", length);
+                    // create the entry o
+                    counts.put("maxPartitionSize", size);
 
                     ArrayList<Tuple2<String, Long>> pairs = new ArrayList<>();
                     for (Map.Entry<String, Long> e : counts.entrySet()) {
@@ -105,6 +115,7 @@ public class G47HW1 {
                 })
                 .groupByKey()     // <-- REDUCE PHASE (R2)
                 .map((it) -> {
+                    // if the key is "maxPartitionSize" so take the max between the elements
                     if (it._1().equals("maxPartitionSize")) {
                         long max = 0;
                         for (long c : it._2()) {
@@ -114,6 +125,7 @@ public class G47HW1 {
                         }
                         return new Tuple2<>(it._1(), max);
                     } else {
+                        // else (for regular keys) compute the sum of all elements
                         long sum = 0;
                         for (long c : it._2()) {
                             sum += c;
@@ -121,13 +133,24 @@ public class G47HW1 {
                         return new Tuple2<>(it._1(), sum);
                     }
                 })
-                .sortBy((pair) -> pair._1(), true, K) // sorted ascending by class name
-                .sortBy((pair) -> pair._2(), false, K) // sorted descending by occurrences
+                // sorted ascending by class name to solve possible tiebreaks
+                .sortBy((pair) -> pair._1(), true, K)
+                // sorted descending by occurrences
+                .sortBy((pair) -> pair._2(), false, K)
                 .collect();
 
-        Long N_max = result2.stream().filter((el) -> el._1().equals("maxPartitionSize")).findAny().get()._2();
+        Long N_max = result2.stream()
+                .filter((el) -> el._1().equals("maxPartitionSize")) // get the pair with key "maxPartitionSize"
+                .findAny()
+                .get()
+                ._2(); // get the value
+        Tuple2<String, Long> tuple = result2.stream()
+                .filter((el) -> !el._1().equals("maxPartitionSize")) // exclude the pair with key "maxPartitionSize"
+                .findFirst() // take the first, so which has highest number of occurences
+                .get();
+
         System.out.println("\n\nVERSION WITH SPARK PARTITIONS\n" +
-                "Most frequent class =  " + result2.stream().filter((el) -> !el._1().equals("maxPartitionSize")).findFirst().get() +
+                "Most frequent class =  " + tuple +
                 "\nMax partition size =  " + N_max
         );
     }
