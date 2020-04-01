@@ -146,7 +146,7 @@ public class G46HW1 {
                 ._2(); // get the value
         Tuple2<String, Long> tuple = result2.stream()
                 .filter((el) -> !el._1().equals("maxPartitionSize")) // exclude the pair with key "maxPartitionSize"
-                .findFirst() // take the first, so which has highest number of occurences
+                .findFirst() // take the first, so which has highest number of occurrences
                 .get();
 
         System.out.println("\n\nVERSION WITH SPARK PARTITIONS\n" +
