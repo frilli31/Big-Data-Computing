@@ -132,9 +132,8 @@ public class G46HW1 {
                         }
                         return new Tuple2<>(it._1(), sum);
                     }
-                })
+                });
                 // sorted ascending by class name to solve possible ties
-                .sortByKey();
 
         Long N_max = count
                 .filter((el) -> el._1().equals("maxPartitionSize")) // get the pair with key "maxPartitionSize"
@@ -143,7 +142,7 @@ public class G46HW1 {
 
         Tuple2<String, Long> tuple = count
                 .filter((el) -> !el._1().equals("maxPartitionSize")) // exclude the pair with key "maxPartitionSize"
-                .reduce((value1, value2) -> (value1._2() < value2._2()) ? value2 : value1 // get the maximum among all values: instead of ordering (O(nlogn))and taking the first element, we use
+                .reduce((value1, value2) -> (value1._2() < value2._2() || (value1._2() == value2._2() && value1._1().compareTo(value2._1()) < 0)) ? value2 : value1 // get the maximum among all values: instead of ordering (O(nlogn))and taking the first element, we use
                         // reduce to scan only once the list (O(n))
                 );
 
