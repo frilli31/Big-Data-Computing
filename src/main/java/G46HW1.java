@@ -143,7 +143,8 @@ public class G46HW1 {
 
         Tuple2<String, Long> tuple = count
                 .filter((el) -> !el._1().equals("maxPartitionSize")) // exclude the pair with key "maxPartitionSize"
-                .reduce((value1, value2) -> (value1._2() < value2._2()) ? value2 : value1 // get the maximum among all values
+                .reduce((value1, value2) -> (value1._2() < value2._2()) ? value2 : value1 // get the maximum among all values: instead of ordering (O(nlogn))and taking the first element, we use
+                        // reduce to scan only once the list (O(n))
                 );
 
 
