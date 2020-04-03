@@ -90,7 +90,7 @@ public class G46HW1 {
         // VERSION WITH SPARK PARTITIONS
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        List<Tuple2<String, Long>> result2 = dataset
+        count = dataset
                 // consider each partition
                 .mapPartitionsToPair((row) -> {    // <-- MAP PHASE (R1)
 
@@ -104,8 +104,8 @@ public class G46HW1 {
                         counts.put(key, 1 + counts.getOrDefault(key, 0L));
                         size += 1;
                     }
-                    // create the entry o
-                    counts.put("maxPartitionSize", size);
+                    // create the special pair for storing the partition size
+                    counts.put("partitionSize", size);
 
                     ArrayList<Tuple2<String, Long>> pairs = new ArrayList<>();
                     for (Map.Entry<String, Long> e : counts.entrySet()) {
@@ -114,16 +114,16 @@ public class G46HW1 {
                     return pairs.iterator();
                 })
                 .groupByKey()     // <-- REDUCE PHASE (R2)
-                .map((it) -> {
-                    // if the key is "maxPartitionSize" take the max between the elements
-                    if (it._1().equals("maxPartitionSize")) {
+                .mapToPair((it) -> {
+                    // if the key is "partitionSize" take the maximum among the elements
+                    if (it._1().equals("partitionSize")) {
                         long max = 0;
                         for (long c : it._2()) {
                             if (c > max) {
                                 max = c;
                             }
                         }
-                        return new Tuple2<>(it._1(), max);
+                        return new Tuple2<>("maxPartitionSize", max);
                     } else {
                         // else (for regular keys) compute the sum of all elements
                         long sum = 0;
@@ -134,20 +134,18 @@ public class G46HW1 {
                     }
                 })
                 // sorted ascending by class name to solve possible ties
-                .sortBy((pair) -> pair._1(), true, K)
-                // sorted descending by occurrences
-                .sortBy((pair) -> pair._2(), false, K)
-                .collect();
+                .sortByKey();
 
-        Long N_max = result2.stream()
+        Long N_max = count
                 .filter((el) -> el._1().equals("maxPartitionSize")) // get the pair with key "maxPartitionSize"
-                .findAny()
-                .get()
+                .first()
                 ._2(); // get the value
-        Tuple2<String, Long> tuple = result2.stream()
+
+        Tuple2<String, Long> tuple = count
                 .filter((el) -> !el._1().equals("maxPartitionSize")) // exclude the pair with key "maxPartitionSize"
-                .findFirst() // take the first, which has highest number of occurrences
-                .get();
+                .reduce((value1, value2) -> (value1._2() < value2._2()) ? value2 : value1 // get the maximum among all values
+                );
+
 
         System.out.println("\n\nVERSION WITH SPARK PARTITIONS\n" +
                 "Most frequent class =  " + tuple +
