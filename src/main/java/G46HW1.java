@@ -133,7 +133,6 @@ public class G46HW1 {
                         return new Tuple2<>(it._1(), sum);
                     }
                 });
-                // sorted ascending by class name to solve possible ties
 
         Long N_max = count
                 .filter((el) -> el._1().equals("maxPartitionSize")) // get the pair with key "maxPartitionSize"
