@@ -55,7 +55,7 @@ public class G46HW1 {
         count = dataset
                 .mapToPair((row) -> {    // <-- MAP PHASE (R1)
                     String[] parts = row.split(" ");
-                    // map the pair into the the bucket "i mod K"
+                    // map the pair into the bucket "i mod K"
                     return new Tuple2<>(Long.parseLong(parts[0]) % K, parts[1]);
                 })
                 .groupByKey()    // <-- REDUCE PHASE (R1)
@@ -81,7 +81,7 @@ public class G46HW1 {
                         sum += c;
                     }
                     return sum;
-                }).sortByKey(); // sort ky word, so in alphabetical order
+                }).sortByKey(); // sort by word, so in alphabetical order
         List<Tuple2<String, Long>> result = count.collect();
         System.out.print("VERSION WITH DETERMINISTIC PARTITIONS\nOutput pairs = ");
         result.forEach(el -> System.out.print(el + " "));
@@ -115,7 +115,7 @@ public class G46HW1 {
                 })
                 .groupByKey()     // <-- REDUCE PHASE (R2)
                 .map((it) -> {
-                    // if the key is "maxPartitionSize" so take the max between the elements
+                    // if the key is "maxPartitionSize" take the max between the elements
                     if (it._1().equals("maxPartitionSize")) {
                         long max = 0;
                         for (long c : it._2()) {
@@ -133,7 +133,7 @@ public class G46HW1 {
                         return new Tuple2<>(it._1(), sum);
                     }
                 })
-                // sorted ascending by class name to solve possible tiebreaks
+                // sorted ascending by class name to solve possible ties
                 .sortBy((pair) -> pair._1(), true, K)
                 // sorted descending by occurrences
                 .sortBy((pair) -> pair._2(), false, K)
@@ -146,7 +146,7 @@ public class G46HW1 {
                 ._2(); // get the value
         Tuple2<String, Long> tuple = result2.stream()
                 .filter((el) -> !el._1().equals("maxPartitionSize")) // exclude the pair with key "maxPartitionSize"
-                .findFirst() // take the first, so which has highest number of occurrences
+                .findFirst() // take the first, which has highest number of occurrences
                 .get();
 
         System.out.println("\n\nVERSION WITH SPARK PARTITIONS\n" +
