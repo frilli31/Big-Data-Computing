@@ -72,16 +72,8 @@ public class G46HW1 {
                     }
                     return pairs.iterator();
                 })
-                // group by word
-                .groupByKey()    // <-- REDUCE PHASE (R2):
-                .mapValues((it) -> {
-                    // for each word sum all the counts computed by in different buckets
-                    long sum = 0;
-                    for (long c : it) {
-                        sum += c;
-                    }
-                    return sum;
-                }).sortByKey(); // sort by word, so in alphabetical order
+                .reduceByKey(Long::sum) // group by word and sum the values
+                .sortByKey(); // sort by word, so in alphabetical order
         List<Tuple2<String, Long>> result = count.collect();
         System.out.print("VERSION WITH DETERMINISTIC PARTITIONS\nOutput pairs = ");
         result.forEach(el -> System.out.print(el + " "));
