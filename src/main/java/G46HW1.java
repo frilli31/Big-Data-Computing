@@ -46,13 +46,13 @@ public class G46HW1 {
         // SETTING GLOBAL VARIABLES
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        JavaPairRDD<String, Long> count;
+        JavaPairRDD<String, Long> pairStrings;
 
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
         // VERSION WITH DETERMINISTIC PARTITIONS
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        count = dataset
+        pairStrings = dataset
                 .mapToPair((row) -> {    // <-- MAP PHASE (R1)
                     String[] parts = row.split(" ");
                     // map the pair into the bucket "i mod K"
@@ -74,7 +74,7 @@ public class G46HW1 {
                 })
                 .reduceByKey(Long::sum) // group by word and sum the values
                 .sortByKey(); // sort by word, so in alphabetical order
-        List<Tuple2<String, Long>> result = count.collect();
+        List<Tuple2<String, Long>> result = pairStrings.collect();
         System.out.print("VERSION WITH DETERMINISTIC PARTITIONS\nOutput pairs = ");
         result.forEach(el -> System.out.print(el + " "));
 
@@ -82,7 +82,7 @@ public class G46HW1 {
         // VERSION WITH SPARK PARTITIONS
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-        count = dataset
+        pairStrings = dataset
                 // consider each partition
                 .mapPartitionsToPair((row) -> {    // <-- MAP PHASE (R1)
                     HashMap<String, Long> counts = new HashMap<>();
@@ -121,12 +121,12 @@ public class G46HW1 {
                     }
                 });
 
-        Long N_max = count
+        Long N_max = pairStrings
                 .filter((el) -> el._1().equals("maxPartitionSize")) // get the pair with key "maxPartitionSize"
                 .first()
                 ._2(); // get the value
 
-        Tuple2<String, Long> tuple = count
+        Tuple2<String, Long> tuple = pairStrings
                 .filter((el) -> !el._1().equals("maxPartitionSize")) // exclude the pair with key "maxPartitionSize"
                 .reduce((value1, value2) -> {
                     if (value1._2() > value2._2() || // if the first has a higher count
