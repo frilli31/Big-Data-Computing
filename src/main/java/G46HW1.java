@@ -85,7 +85,6 @@ public class G46HW1 {
         count = dataset
                 // consider each partition
                 .mapPartitionsToPair((row) -> {    // <-- MAP PHASE (R1)
-
                     HashMap<String, Long> counts = new HashMap<>();
                     long size = 0;
                     // foreach entry in the partition update the dictionary that contains
@@ -110,18 +109,14 @@ public class G46HW1 {
                     // if the key is "partitionSize" take the maximum among the elements
                     if (it._1().equals("partitionSize")) {
                         long max = 0;
-                        for (long c : it._2()) {
-                            if (c > max) {
-                                max = c;
-                            }
-                        }
+                        for (long c : it._2())
+                            max = Math.max(c, max);
                         return new Tuple2<>("maxPartitionSize", max);
                     } else {
                         // else (for regular keys) compute the sum of all elements
                         long sum = 0;
-                        for (long c : it._2()) {
+                        for (long c : it._2())
                             sum += c;
-                        }
                         return new Tuple2<>(it._1(), sum);
                     }
                 });
@@ -133,10 +128,16 @@ public class G46HW1 {
 
         Tuple2<String, Long> tuple = count
                 .filter((el) -> !el._1().equals("maxPartitionSize")) // exclude the pair with key "maxPartitionSize"
-                .reduce((value1, value2) -> (value1._2() < value2._2() || (value1._2() == value2._2() && value1._1().compareTo(value2._1()) < 0)) ? value2 : value1 // get the maximum among all values: instead of ordering (O(nlogn))and taking the first element, we use
-                        // reduce to scan only once the list (O(n))
-                );
-
+                .reduce((value1, value2) -> {
+                    if (value1._2() > value2._2() || // if the first has a higher count
+                            (value1._2().equals(value2._2()) && value1._1().compareTo(value2._1()) < 0))
+                        // or It has the an equal count and It comes before in alphabetical order
+                        return value1;
+                    else
+                        return value2;
+                });
+        // we use reduce function, that scan only once the list (O(n)), to get the maximum among all values
+        // because it has lower complexity w.r.t. ordering (O(n*log(n))) and taking the first element
 
         System.out.println("\n\nVERSION WITH SPARK PARTITIONS\n" +
                 "Most frequent class =  " + tuple +
