@@ -18,6 +18,9 @@ public class G46HW2 {
         // Reading points from a file whose name is provided as args[0]
         // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
+        if (args.length != 2) {
+            throw new IllegalArgumentException("USAGE: file_path k");
+        }
         String filename = args[0];
         int K = Integer.parseInt(args[1]);
 
@@ -47,8 +50,8 @@ public class G46HW2 {
         );
 
         startTime = System.currentTimeMillis();
-
-        maxDistance = exactMPD(kCenterMPD(inputPoints, K, SEED));
+        ArrayList<Vector> centers = kCenterMPD(inputPoints, K, SEED);
+        maxDistance = exactMPD(centers);
 
         estimatedTime = System.currentTimeMillis() - startTime;
 
