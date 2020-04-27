@@ -23,16 +23,16 @@ public class G46HW2 {
 
         final long SEED = 1211142L;
 
-        ArrayList<Vector> inputPoints = readVectorsSeq(filename);
+        List<Vector> inputPoints = readVectorsSeq(filename);
 
         long startTime = System.currentTimeMillis();
 
-        double maxDistance = exactMPD(inputPoints);
+        double maxDistance = 0;//exactMPD(inputPoints);
 
         long estimatedTime = System.currentTimeMillis() - startTime;
 
         System.out.println("EXACT ALGORITHM\n Max distance = " + maxDistance
-                + "\nRunning time = " + estimatedTime % 1000 + " ms"
+                + "\nRunning time = " + estimatedTime + " ms"
         );
 
         startTime = System.currentTimeMillis();
@@ -43,7 +43,7 @@ public class G46HW2 {
 
         System.out.println("\n\n2-APPROXIMATION ALGORITHM\n k = " + K
                 + "\nMax distance = " + maxDistance
-                + "\nRunning time = " + estimatedTime % 1000 + " ms"
+                + "\nRunning time = " + estimatedTime + " ms"
         );
 
         startTime = System.currentTimeMillis();
@@ -54,29 +54,37 @@ public class G46HW2 {
 
         System.out.println("\n\nk-CENTER-BASED ALGORITHM\n k = " + K
                 + "\nMax distance = " + maxDistance
-                + "\nRunning time = " + estimatedTime % 1000 + " ms"
+                + "\nRunning time = " + estimatedTime + " ms"
         );
     }
 
-    public static double exactMPD(ArrayList<Vector> inputPoints) {
+    public static double exactMPD(List<Vector> inputPoints) {
         double max_length = 0;
-        int size_minus_1 = inputPoints.size() - 1;
-        int size = inputPoints.size();
-        for (int i = 0; i < size_minus_1; i++)
-            for (int j = i + 1; j < size; j++)
+        for (int i = 0; i < inputPoints.size() - 1; i++)
+            // j starts from (i+1) because the distance function is symmetric and
+            // for each pair x,y we compute only d(x,y) and not d(y,x)
+            for (int j = i + 1; j < inputPoints.size(); j++)
                 max_length = Math.max(max_length, Vectors.sqdist(inputPoints.get(i), inputPoints.get(j)));
         return max_length;
     }
 
-    public static double twoApproxMPD(ArrayList<Vector> inputPoints, int k, long SEED) {
+    public static double twoApproxMPD(List<Vector> inputPoints, int k, long SEED) {
         Random r = new Random();
         r.setSeed(SEED);
 
+        // generate randomly a vector of 'k' distinct element of 'inputPoints'
         List<Vector> smallSet = r.ints(0, inputPoints.size())
                 .distinct()
                 .limit(k)
                 .mapToObj(inputPoints::get)
                 .collect(Collectors.toList());
+//        The commented version is slightly better (estimated 2%), but less pretty
+//        Set<Integer> randomIndexes = new HashSet<>();
+//        while(randomIndexes.size()<k)
+//            randomIndexes.add(r.nextInt(inputPoints.size()));
+//
+//        List<Vector> smallSet = new ArrayList<Vector>();
+//        randomIndexes.forEach(idx-> smallSet.add(inputPoints.get(idx)));
 
         double maxDistance = 0;
         for (Vector center : smallSet)
@@ -85,17 +93,17 @@ public class G46HW2 {
         return maxDistance;
     }
 
-    public static ArrayList<Vector> kCenterMPD(ArrayList<Vector> inputPoints, int k, long SEED) {
+    public static ArrayList<Vector> kCenterMPD(List<Vector> inputPoints, int k, long SEED) {
         Random r = new Random();
         r.setSeed(SEED);
 
         // the array that will contain the result
-        ArrayList<Vector> resultC = new ArrayList<>(k);
+        ArrayList<Vector> C = new ArrayList<>(k);
 
         // the index of the fist point (generated randomly)
         int indexOfLatestPoint = r.nextInt(inputPoints.size());
 
-        resultC.add(inputPoints.get(indexOfLatestPoint));
+        C.add(inputPoints.get(indexOfLatestPoint));
 
         // I use array because I know the exact size and they are much faster than ArrayList
         double[] distances = new double[inputPoints.size()];
@@ -106,6 +114,8 @@ public class G46HW2 {
             int indexOfMaxDistance = 0;
 
             for (int i = 0; i < inputPoints.size(); i++) {
+                // Here we update the distance stored considering also the last point added to 'C'
+                // calculating the minimum between the old distance and the distance to the last point
                 distances[i] = Math.min(
                         distances[i],
                         Vectors.sqdist(inputPoints.get(i), inputPoints.get(indexOfLatestPoint))
@@ -115,11 +125,10 @@ public class G46HW2 {
                     indexOfMaxDistance = i;
                 }
             }
-
-            indexOfLatestPoint = indexOfMaxDistance;
-            resultC.add(inputPoints.get(indexOfMaxDistance));
+            C.add(inputPoints.get(indexOfMaxDistance)); // add the point with maximum distance to C
+            indexOfLatestPoint = indexOfMaxDistance;    // save the index to be able to recompute new distances
         }
-        return resultC;
+        return C;
     }
 
 
