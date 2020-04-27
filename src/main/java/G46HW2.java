@@ -27,7 +27,7 @@ public class G46HW2 {
 
         long startTime = System.currentTimeMillis();
 
-        double maxDistance = 0;//exactMPD(inputPoints);
+        double maxDistance = exactMPD(inputPoints);
 
         long estimatedTime = System.currentTimeMillis() - startTime;
 
