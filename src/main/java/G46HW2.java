@@ -68,7 +68,7 @@ public class G46HW2 {
             // for each pair x,y we compute only d(x,y) and not d(y,x)
             for (int j = i + 1; j < inputPoints.size(); j++)
                 max_length = Math.max(max_length, Vectors.sqdist(inputPoints.get(i), inputPoints.get(j)));
-        return max_length;
+        return Math.sqrt(max_length);
     }
 
     public static double twoApproxMPD(List<Vector> inputPoints, int k, long SEED) {
@@ -93,7 +93,7 @@ public class G46HW2 {
         for (Vector center : smallSet)
             for (Vector point : inputPoints)
                 maxDistance = Math.max(maxDistance, Vectors.sqdist(center, point));
-        return maxDistance;
+        return Math.sqrt(maxDistance);
     }
 
     public static ArrayList<Vector> kCenterMPD(List<Vector> inputPoints, int k, long SEED) {
