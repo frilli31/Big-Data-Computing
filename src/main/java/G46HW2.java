@@ -50,6 +50,7 @@ public class G46HW2 {
         );
 
         startTime = System.currentTimeMillis();
+
         ArrayList<Vector> centers = kCenterMPD(inputPoints, K, SEED);
         maxDistance = exactMPD(centers);
 
@@ -62,13 +63,13 @@ public class G46HW2 {
     }
 
     public static double exactMPD(List<Vector> inputPoints) {
-        double max_length = 0;
+        double maxSqDistance = 0;
         for (int i = 0; i < inputPoints.size() - 1; i++)
             // j starts from (i+1) because the distance function is symmetric and
             // for each pair x,y we compute only d(x,y) and not d(y,x)
             for (int j = i + 1; j < inputPoints.size(); j++)
-                max_length = Math.max(max_length, Vectors.sqdist(inputPoints.get(i), inputPoints.get(j)));
-        return Math.sqrt(max_length);
+                maxSqDistance = Math.max(maxSqDistance, Vectors.sqdist(inputPoints.get(i), inputPoints.get(j)));
+        return Math.sqrt(maxSqDistance);
     }
 
     public static double twoApproxMPD(List<Vector> inputPoints, int k, long SEED) {
@@ -76,7 +77,7 @@ public class G46HW2 {
         r.setSeed(SEED);
 
         // generate randomly a vector of 'k' distinct element of 'inputPoints'
-        List<Vector> smallSet = r.ints(0, inputPoints.size())
+        List<Vector> sampleSet = r.ints(0, inputPoints.size())
                 .distinct()
                 .limit(k)
                 .mapToObj(inputPoints::get)
@@ -86,52 +87,56 @@ public class G46HW2 {
 //        while(randomIndexes.size()<k)
 //            randomIndexes.add(r.nextInt(inputPoints.size()));
 //
-//        List<Vector> smallSet = new ArrayList<Vector>();
-//        randomIndexes.forEach(idx-> smallSet.add(inputPoints.get(idx)));
+//        List<Vector> sampleSet = new ArrayList<Vector>();
+//        randomIndexes.forEach(idx-> sampleSet.add(inputPoints.get(idx)));
 
-        double maxDistance = 0;
-        for (Vector center : smallSet)
+        double maxSqDistance = 0;
+        // test all possible pairs picking one element from the 'sampleSet' and
+        // one element from the entire set
+        for (Vector sample : sampleSet)
             for (Vector point : inputPoints)
-                maxDistance = Math.max(maxDistance, Vectors.sqdist(center, point));
-        return Math.sqrt(maxDistance);
+                maxSqDistance = Math.max(maxSqDistance, Vectors.sqdist(sample, point));
+        return Math.sqrt(maxSqDistance);
     }
 
     public static ArrayList<Vector> kCenterMPD(List<Vector> inputPoints, int k, long SEED) {
         Random r = new Random();
         r.setSeed(SEED);
 
-        // the array that will contain the result
-        ArrayList<Vector> C = new ArrayList<>(k);
+        // the array that will contain the centers that will be returned
+        ArrayList<Vector> centers = new ArrayList<>(k);
 
-        // the index of the fist point (generated randomly)
+        // this variable will contain the index  of the latest point added to 'centers' which
+        // will be used to calculate the new distances from the points to the centers
         int indexOfLatestPoint = r.nextInt(inputPoints.size());
 
-        C.add(inputPoints.get(indexOfLatestPoint));
+        centers.add(inputPoints.get(indexOfLatestPoint));
 
-        // I use array because I know the exact size and they are much faster than ArrayList
-        double[] distances = new double[inputPoints.size()];
-        Arrays.fill(distances, Double.MAX_VALUE);
+        // I use array because I know the exact size and they are faster than ArrayList
+        double[] sqDistances = new double[inputPoints.size()];
+        Arrays.fill(sqDistances, Double.MAX_VALUE);
 
         for (int center = 1; center < k; center++) {
-            double maxDistance = 0;
+            double maxSqDistance = 0;
             int indexOfMaxDistance = 0;
 
             for (int i = 0; i < inputPoints.size(); i++) {
-                // Here we update the distance stored considering also the last point added to 'C'
-                // calculating the minimum between the old distance and the distance to the last point
-                distances[i] = Math.min(
-                        distances[i],
+                // Here we update the distance stored considering also the latest point added to 'centers'
+                // calculating the minimum between the old distance and the distance to the point 'i'
+                // and the latest point added to 'centers'
+                sqDistances[i] = Math.min(
+                        sqDistances[i],
                         Vectors.sqdist(inputPoints.get(i), inputPoints.get(indexOfLatestPoint))
                 );
-                if (distances[i] > maxDistance) {
-                    maxDistance = distances[i];
+                if (sqDistances[i] > maxSqDistance) {
+                    maxSqDistance = sqDistances[i];
                     indexOfMaxDistance = i;
                 }
             }
-            C.add(inputPoints.get(indexOfMaxDistance)); // add the point with maximum distance to C
+            centers.add(inputPoints.get(indexOfMaxDistance)); // add the point with maximum distance to 'centers'
             indexOfLatestPoint = indexOfMaxDistance;    // save the index to be able to recompute new distances
         }
-        return C;
+        return centers;
     }
 
 
