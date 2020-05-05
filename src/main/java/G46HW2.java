@@ -4,11 +4,7 @@ import org.apache.spark.mllib.linalg.Vectors;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
-import java.util.stream.Collectors;
+import java.util.*;
 
 public class G46HW2 {
 
@@ -76,19 +72,12 @@ public class G46HW2 {
         Random r = new Random();
         r.setSeed(SEED);
 
-        // generate randomly a vector of 'k' distinct element of 'inputPoints'
-        List<Vector> sampleSet = r.ints(0, inputPoints.size())
-                .distinct()
-                .limit(k)
-                .mapToObj(inputPoints::get)
-                .collect(Collectors.toList());
-//        The commented version is slightly better (estimated 2%), but less pretty
-//        Set<Integer> randomIndexes = new HashSet<>();
-//        while(randomIndexes.size()<k)
-//            randomIndexes.add(r.nextInt(inputPoints.size()));
-//
-//        List<Vector> sampleSet = new ArrayList<Vector>();
-//        randomIndexes.forEach(idx-> sampleSet.add(inputPoints.get(idx)));
+        // generate randomly a vector of 'k' element from 'inputPoints' using k distinct indexes
+        Set<Integer> randomIndexes = new HashSet<>();
+        while (randomIndexes.size() < k)
+            randomIndexes.add(r.nextInt(inputPoints.size()));
+        List<Vector> sampleSet = new ArrayList<Vector>();
+        randomIndexes.forEach(idx -> sampleSet.add(inputPoints.get(idx)));
 
         double maxSqDistance = 0;
         // test all possible pairs picking one element from the 'sampleSet' and
@@ -106,7 +95,7 @@ public class G46HW2 {
         // the array that will contain the centers that will be returned
         ArrayList<Vector> centers = new ArrayList<>(k);
 
-        // this variable will contain the index  of the latest point added to 'centers' which
+        // this variable will contain the index of the latest point added to 'centers' which
         // will be used to calculate the new distances from the points to the centers
         int indexOfLatestPoint = r.nextInt(inputPoints.size());
 
