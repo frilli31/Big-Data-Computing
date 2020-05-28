@@ -52,14 +52,31 @@ public class G46HW3 {
                 + "\nL = " + L
                 + "\nRunning time = " + estimatedTime + " ms\n");
 
-        ArrayList<Vector> result = runMapReduce(inputPoints,k,L);
+        ArrayList<Vector> solution = runMapReduce(inputPoints,k,L);
 
-
+        //ArrayList<Vector> solution = new ArrayList(inputPoints.collect());
+        long avg = measure(solution);
+        System.out.println("Average distance = " + avg);
     }
 
     // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
     // Auxiliary methods
     // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+    public static long measure(ArrayList<Vector> pointSet) {
+        long sum = 0;
+        int count = 0;
+        for (int i = 0; i < pointSet.size() ; i++) {
+            for (int j = i+1; j < pointSet.size(); j++) {
+                double tmp = Vectors.sqdist(pointSet.get(i), pointSet.get(j));
+                //tmp = java.lang.Math.sqrt(tmp);
+                System.out.println("sqdist from " + pointSet.get(i) + " to " + pointSet.get(j) + " is " + tmp);
+                sum += tmp;
+                count += 1;
+            }
+        }
+        return sum/count;
+    }
 
     public static Vector strToVector(String str) {
         String[] tokens = str.split(",");
@@ -183,21 +200,21 @@ public class G46HW3 {
     public static ArrayList<Vector> runMapReduce(JavaRDD<Vector> pointsRDD, int k, int L) {
         final long SEED = 1211142L;
 
-        long startTime = System.currentTimeMillis();
-
         //Round 1
+        long startTime = System.currentTimeMillis();
 
         JavaRDD<Vector> tmp = pointsRDD.mapPartitions(
                 (partition)->wrapper_kCenter(partition,k,SEED)
         );
 
+        System.out.println("count() : " + tmp.count() + "\n");
+
         long estimatedTime = System.currentTimeMillis() - startTime;
 
         System.out.println("Running time of Round 1 = " + estimatedTime + " ms\n");
 
-        startTime = System.currentTimeMillis();
-
         // Round 2
+        startTime = System.currentTimeMillis();
 
         ArrayList<Vector> coreset = new ArrayList(tmp.collect());
 
