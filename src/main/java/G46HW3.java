@@ -50,41 +50,53 @@ public class G46HW3 {
         System.out.println("Number of points = " + inputPoints.count()
                 + "\nk = " + k
                 + "\nL = " + L
-                + "\nRunning time = " + estimatedTime + " ms\n");
+                + "\nInitialization time = " + estimatedTime + " ms\n");
 
         ArrayList<Vector> solution = runMapReduce(inputPoints,k,L);
 
-        //ArrayList<Vector> solution = new ArrayList(inputPoints.collect());
-        long avg = measure(solution);
+        double avg = measure(solution);
         System.out.println("Average distance = " + avg);
+    }
+
+    public static ArrayList<Vector> runMapReduce(JavaRDD<Vector> pointsRDD, int k, int L) {
+        final long SEED = 1211142L;
+
+        // Round 1
+        long startTime = System.currentTimeMillis();
+
+        JavaRDD<Vector> tmp = pointsRDD.mapPartitions(
+                (partition)->wrapper_kCenter(partition,k,SEED)
+        );
+
+        long estimatedTime = System.currentTimeMillis() - startTime;
+
+        System.out.println("Running time of Round 1 = " + estimatedTime + " ms");
+
+        // Round 2
+        startTime = System.currentTimeMillis();
+
+        ArrayList<Vector> coreset = new ArrayList(tmp.collect());
+        ArrayList<Vector> result = runSequential(coreset, k);
+
+        estimatedTime = System.currentTimeMillis() - startTime;
+
+        System.out.println("Running time of Round 2 = " + estimatedTime + " ms\n");
+
+        return result;
     }
 
     // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
     // Auxiliary methods
     // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-    public static long measure(ArrayList<Vector> pointSet) {
-        long sum = 0;
-        int count = 0;
-        for (int i = 0; i < pointSet.size() ; i++) {
-            for (int j = i+1; j < pointSet.size(); j++) {
-                double tmp = Vectors.sqdist(pointSet.get(i), pointSet.get(j));
-                //tmp = java.lang.Math.sqrt(tmp);
-                System.out.println("sqdist from " + pointSet.get(i) + " to " + pointSet.get(j) + " is " + tmp);
-                sum += tmp;
-                count += 1;
-            }
-        }
-        return sum/count;
-    }
+    public static double measure(ArrayList<Vector> pointSet) {
+        double sum = 0;
+        int numberOfSummedDistances = pointSet.size() * (pointSet.size()-1) / 2;
+        for (int i = 0; i < pointSet.size() ; i++)
+            for (int j = i+1; j < pointSet.size(); j++)
+                sum += java.lang.Math.sqrt(Vectors.sqdist(pointSet.get(i), pointSet.get(j)));
 
-    public static Vector strToVector(String str) {
-        String[] tokens = str.split(",");
-        double[] data = new double[tokens.length];
-        for (int i = 0; i < tokens.length; i++) {
-            data[i] = Double.parseDouble(tokens[i]);
-        }
-        return Vectors.dense(data);
+        return sum / numberOfSummedDistances;
     }
 
     public static Iterator<Vector> wrapper_kCenter(Iterator<Vector> inputPoints, int k, long SEED){
@@ -95,7 +107,6 @@ public class G46HW3 {
         List<Vector> list = StreamSupport
                 .stream(iterable.spliterator(), false)
                 .collect(Collectors.toList());
-
         return kCenter(list,k,SEED).iterator();
     }
 
@@ -137,6 +148,20 @@ public class G46HW3 {
             indexOfLatestPoint = indexOfMaxDistance;    // save the index to be able to recompute new distances
         }
         return centers;
+    }
+
+
+    // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+    // METHODS given by professors
+    // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+    public static Vector strToVector(String str) {
+        String[] tokens = str.split(",");
+        double[] data = new double[tokens.length];
+        for (int i = 0; i < tokens.length; i++) {
+            data[i] = Double.parseDouble(tokens[i]);
+        }
+        return Vectors.dense(data);
     }
 
     // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -196,34 +221,4 @@ public class G46HW3 {
         return result;
 
     } // END runSequential
-
-    public static ArrayList<Vector> runMapReduce(JavaRDD<Vector> pointsRDD, int k, int L) {
-        final long SEED = 1211142L;
-
-        //Round 1
-        long startTime = System.currentTimeMillis();
-
-        JavaRDD<Vector> tmp = pointsRDD.mapPartitions(
-                (partition)->wrapper_kCenter(partition,k,SEED)
-        );
-
-        System.out.println("count() : " + tmp.count() + "\n");
-
-        long estimatedTime = System.currentTimeMillis() - startTime;
-
-        System.out.println("Running time of Round 1 = " + estimatedTime + " ms\n");
-
-        // Round 2
-        startTime = System.currentTimeMillis();
-
-        ArrayList<Vector> coreset = new ArrayList(tmp.collect());
-
-        ArrayList<Vector> result = runSequential(coreset,k);
-
-        estimatedTime = System.currentTimeMillis() - startTime;
-
-        System.out.println("Running time of Round 2 = " + estimatedTime + " ms\n");
-
-        return result;
-    }
 }
