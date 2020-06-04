@@ -45,6 +45,8 @@ public class G46HW3 {
                 .map((line)->strToVector(line))
                 .repartition(L).cache();
 
+        inputPoints.count();
+
         long estimatedTime = System.currentTimeMillis() - startTime;
 
         System.out.println("Number of points = " + inputPoints.count()
@@ -67,6 +69,8 @@ public class G46HW3 {
         JavaRDD<Vector> tmp = pointsRDD.mapPartitions(
                 (partition)->wrapper_kCenter(partition,k,SEED)
         );
+
+        tmp.count(); // in order to force mapPartition
 
         long estimatedTime = System.currentTimeMillis() - startTime;
 
