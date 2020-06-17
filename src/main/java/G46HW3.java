@@ -45,7 +45,7 @@ public class G46HW3 {
                 .map((line)->strToVector(line))
                 .repartition(L).cache();
 
-        inputPoints.count();
+        inputPoints.count(); //to force computation
 
         long estimatedTime = System.currentTimeMillis() - startTime;
 
@@ -70,7 +70,7 @@ public class G46HW3 {
                 (partition)->wrapper_kCenter(partition,k,SEED)
         );
 
-        tmp.count(); // in order to force mapPartition
+        tmp.count(); // to force computation
 
         long estimatedTime = System.currentTimeMillis() - startTime;
 
@@ -79,7 +79,7 @@ public class G46HW3 {
         // Round 2
         startTime = System.currentTimeMillis();
 
-        ArrayList<Vector> coreset = new ArrayList(tmp.collect());
+        ArrayList<Vector> coreset = new ArrayList(tmp.collect()); //gather all K*L points from RDD
         ArrayList<Vector> result = runSequential(coreset, k);
 
         estimatedTime = System.currentTimeMillis() - startTime;
@@ -103,6 +103,7 @@ public class G46HW3 {
         return sum / numberOfSummedDistances;
     }
 
+    //wrapping method to avoid kCenter signature change
     public static Iterator<Vector> wrapper_kCenter(Iterator<Vector> inputPoints, int k, long SEED){
         // Convert iterator to iterable
         Iterable<Vector> iterable = () -> inputPoints;
@@ -153,11 +154,6 @@ public class G46HW3 {
         }
         return centers;
     }
-
-
-    // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-    // METHODS given by professors
-    // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
     public static Vector strToVector(String str) {
         String[] tokens = str.split(",");
